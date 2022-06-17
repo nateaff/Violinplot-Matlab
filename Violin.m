@@ -372,7 +372,7 @@ classdef Violin < handle
                 
             if not(isempty(args.ViolinColor))
                 if size(args.ViolinColor{1},1) > 1
-                    ViolinColor{1} = args.ViolinColor{1}(pos,:);
+                    ViolinColor{1} = args.ViolinColor{1}(pos,:);  % Check relies on position = 1:n
                 else
                     ViolinColor{1} = args.ViolinColor{1};
                 end
