@@ -65,11 +65,15 @@ function violins = violinplot(data, cats, varargin)
 %                    Defaults to true
 %     'GroupOrder'   Cell of category names in order to be plotted.
 %                    Defaults to alphabetical ordering
+%     'Position'     X-axis position of each violin
+%                    Defaults to [1:n] for n violin
 
 % Copyright (c) 2016, Bastian Bechtold
 % This code is released under the terms of the BSD 3-clause license
 
-hascategories = exist('cats','var') && not(isempty(cats));
+% HACK: Do not check category argument  
+% hascategories = exist('cats','var') && not(isempty(cats));
+hascategories = false; 
 
 %parse the optional grouporder argument
 %if it exists parse the categories order
@@ -105,6 +109,16 @@ elseif ~isempty(idx) && isnumeric(varargin{idx+1})
     varargin{idx+1} = varargin(idx+1);
 end
 
+% Find Position input, setting default value if not found
+idx=find(strcmp(varargin, 'Position'));
+if ~isempty(idx) && isnumeric(varargin{idx+1})
+    position = varargin{idx + 1}; 
+    varargin(idx+1) = []; 
+    varargin(idx) = []; 
+else 
+    position = []; 
+end
+
 % tabular data
 if isa(data, 'dataset') || isstruct(data) || istable(data)
     if isa(data, 'dataset')
@@ -130,9 +144,17 @@ if isa(data, 'dataset') || isstruct(data) || istable(data)
         end
     end
     
+    % Set default position values
+    if ~isempty(position) 
+        assert(length(position) == length(catnames),...
+            'Number of Position values %d does not match number of categories %d',...
+            length(position), length(catnames))
+        position = 1:length(catnames);
+    end 
+
     for n=1:length(catnames)
         thisData = data.(catnames{n});
-        violins(n) = Violin({thisData}, n, varargin{:});
+        violins(n) = Violin({thisData}, position(n), varargin{:});
     end
     set(gca, 'XTick', 1:length(catnames), 'XTickLabels', catnames);
     set(gca,'Box','on');
@@ -158,7 +180,7 @@ elseif isnumeric(data) % numeric input
             thisCat = catnames(n);
             catnames_labels{n} = char(thisCat);
             thisData = data(cats == thisCat);
-            violins(n) = Violin({thisData}, n, varargin{:});
+            violins(n) = Violin({thisData}, position(n), varargin{:});
         end
         set(gca, 'XTick', 1:length(catnames), 'XTickLabels', catnames_labels);
         set(gca,'Box','on');
@@ -168,6 +190,8 @@ elseif isnumeric(data) % numeric input
     end
 end
 
+% TODO: Position value not yet checked for these cases
+
 % 1D data, no categories
 if not(hascategories) && isvector(data{1})
     violins = Violin(data, 1, varargin{:});
@@ -176,7 +200,7 @@ if not(hascategories) && isvector(data{1})
 elseif ismatrix(data{1})
     for n=1:size(data{1}, 2)
         thisData = cellfun(@(x)x(:,n),data,'UniformOutput',false);
-        violins(n) = Violin(thisData, n, varargin{:});
+        violins(n) = Violin(thisData, position(n), varargin{:});
     end
     set(gca, 'XTick', 1:size(data{1}, 2));
     if hascategories && length(cats) == size(data{1}, 2)
